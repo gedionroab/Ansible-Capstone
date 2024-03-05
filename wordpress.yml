@@ -1,0 +1,7 @@
+- hosts: localhost
+  become: yes
+  vars_files:
+    - vars/main.yml
+  roles:
+    - role: wordpress 
+    - role: geerlingguy.mysql

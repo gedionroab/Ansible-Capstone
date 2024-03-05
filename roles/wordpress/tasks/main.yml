@@ -1,0 +1,92 @@
+- name: Install Packages for wordpress
+  ansible.builtin.apt:
+    name: 
+      - apache2
+      - php
+      - php-pear
+      - php-cgi
+      - php-common
+      - php-curl
+      - php-mbstring
+      - php-gd
+      - php-mysqlnd
+      - php-bcmath
+      - php-json
+      - php-xml
+      - php-intl
+      - php-zip
+      - php-imap
+      - php-imagick
+    update_cache: yes
+
+- name: Enable service httpd and ensure it is not masked
+  ansible.builtin.systemd:
+    name: apache2
+    enabled: true
+    masked: no
+    state: started
+
+    - name: Change file ownership, group and permissions
+  ansible.builtin.file:
+    path: /var/www/html
+    owner: codio
+    group: www-data
+    mode: '0664'
+    recurse: true
+
+    - name: Unarchive wordpress
+  ansible.builtin.unarchive:
+    src: https://wordpress.org/latest.tar.gz
+    dest: /var/www/html/
+    remote_src: yes
+    owner: codio
+    group: www-data
+    extra_opts: [--strip-components=1]
+
+    - name: Update Config  
+  template:  
+    src: wp-config.php.j2  
+    dest: /var/www/html/wp-config.php
+
+    - name: Change file ownership, group and permissions
+  ansible.builtin.file:
+    path: /var/www/html
+    owner: codio
+    group: www-data
+    mode: u=rwX,g=rwX,o=rX 
+    recurse: true
+    state: directory
+
+    - name: remove old index
+  ansible.builtin.file:
+    path: /var/www/html/index.html
+    state: absent
+
+    - name: Enable .htaccess files in Apache config
+  ansible.builtin.replace:
+    path:  /etc/apache2/apache2.conf
+    after: '<Directory /var/www/>'
+    before: '</Directory>'
+    regexp: 'AllowOverride None'
+    replace: |
+      AllowOverride All
+      RequestHeader set X-Forwarded-Proto "https"
+      RequestHeader set X-Forwarded-Port "443"
+  notify:
+    - restart apache2
+
+    - name: Create a symbolic link for mod_headers
+  ansible.builtin.file:
+    src: /etc/apache2/mods-available/headers.load
+    dest: /etc/apache2/mods-enabled/headers.load
+    state: link
+  notify:
+    - restart apache2
+
+    - name: Enables port 3000
+  ansible.builtin.replace:
+    path:  /etc/apache2/ports.conf 
+    regexp: 'Listen 80'
+    replace: Listen 3000
+  notify:
+    - restart apache2

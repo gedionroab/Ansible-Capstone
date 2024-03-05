@@ -1,0 +1,12 @@
+wordpress_db: wordpress
+wordpress_user: wordpress
+wordpress_password: wordpress_password
+mysql_root_password: super-secure-password
+
+mysql_databases:
+  - name: "{{wordpress_db}}"
+mysql_users:
+  - name: "{{wordpress_user}}"
+    host: "%"
+    password: "{{wordpress_password}}"
+    priv: "{{wordpress_user}}.*:ALL"
